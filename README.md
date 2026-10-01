@@ -1,3 +1,8 @@
+Screen Recordings: 
+1: https://drive.google.com/file/d/1che0qVvdTKeAeC0JO0SOAfyIzEVnOBrY/view?usp=sharing
+2: https://drive.google.com/file/d/193CDOCNr1O7JHwnBMq9yM_16P5PIrQlz/view?usp=sharing
+
+
 # Kindred Concierge — Assessment Starter
 
 A small FastAPI + PostgreSQL/pgvector service simulating Kindred's member-matching and concierge backend. Used for the Round 3 take-home — see the assignment brief you were given for what to build.
