@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_member
@@ -16,10 +16,28 @@ def generate_reason(
     db: Session = Depends(get_db),
     member: Member = Depends(get_current_member),
 ):
-    attrs_a = db.query(MemberAttribute).filter(MemberAttribute.member_id == member_a_id).all()
-    attrs_b = db.query(MemberAttribute).filter(MemberAttribute.member_id == member_b_id).all()
+    target_ids = {member_a_id, member_b_id}
+    targets = (
+        db.query(Member)
+        .filter(Member.id.in_(target_ids), Member.club_id == member.club_id)
+        .all()
+    )
+    # Same 404 for missing and foreign-club targets so neither case discloses membership.
+    if {target.id for target in targets} != target_ids:
+        raise HTTPException(status_code=404, detail="member not found")
+
+    attrs = (
+        db.query(MemberAttribute)
+        .filter(
+            MemberAttribute.member_id.in_(target_ids),
+            MemberAttribute.club_id == member.club_id,
+            MemberAttribute.restricted.is_(False),
+        )
+        .order_by(MemberAttribute.id)
+        .all()
+    )
 
     # Every attribute is stated as fact regardless of its confidence score.
-    a_text = "; ".join(a.text for a in attrs_a)
-    b_text = "; ".join(b.text for b in attrs_b)
+    a_text = "; ".join(a.text for a in attrs if a.member_id == member_a_id)
+    b_text = "; ".join(a.text for a in attrs if a.member_id == member_b_id)
     return {"reason_text": f"Because {a_text} and {b_text} — a good {reason} match."}

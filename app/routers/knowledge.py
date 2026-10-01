@@ -21,12 +21,9 @@ def query_knowledge(
 
     query_vec = embedding_client.embed(q)
 
-    # club_id is validated above (the caller must belong to the club they're
-    # asking about) but is NOT applied as a filter on the similarity search
-    # itself below — the nearest-neighbour search runs across every club's
-    # knowledge chunks.
     results = (
         db.query(KnowledgeChunk)
+        .filter(KnowledgeChunk.club_id==member.club_id)
         .order_by(KnowledgeChunk.embedding.cosine_distance(query_vec))
         .limit(5)
         .all()
