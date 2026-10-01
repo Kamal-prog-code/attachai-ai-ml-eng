@@ -26,6 +26,30 @@ def test_generate_reason_includes_attributes(db):
     assert "CFO" in resp.json()["reason_text"]
 
 
+def test_generate_reason_excludes_low_confidence_attributes(db):
+    db.add(Club(id="riverside", name="Riverside"))
+    m1 = Member(club_id="riverside", name="A", email="a@example.com", token="tok-a", role="member")
+    m2 = Member(club_id="riverside", name="B", email="b@example.com", token="tok-b", role="member")
+    db.add_all([m1, m2])
+    db.commit()
+
+    db.add(MemberAttribute(member_id=m1.id, club_id="riverside", kind="need", text="needs a CFO", confidence=0.9))
+    db.add(
+        MemberAttribute(
+            member_id=m2.id, club_id="riverside", kind="offer", text="maybe offers CFO services", confidence=0.4
+        )
+    )
+    db.commit()
+
+    resp = client.get(
+        f"/introductions/{m1.id}/{m2.id}",
+        params={"reason": "business"},
+        headers={"X-Member-Token": "tok-a"},
+    )
+    assert resp.status_code == 200
+    assert "maybe offers CFO services" not in resp.json()["reason_text"]
+
+
 def test_generate_reason_rejects_foreign_target_as_member_a(db):
     db.add_all([Club(id="riverside", name="Riverside"), Club(id="oakhurst", name="Oakhurst")])
     caller = Member(club_id="riverside", name="A", email="a@example.com", token="tok-a", role="member")

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_member
+from app.config import settings
 from app.db import get_db
 from app.models import Member, MemberAttribute
 
@@ -32,12 +33,12 @@ def generate_reason(
             MemberAttribute.member_id.in_(target_ids),
             MemberAttribute.club_id == member.club_id,
             MemberAttribute.restricted.is_(False),
+            MemberAttribute.confidence >= settings.introduction_min_confidence,
         )
         .order_by(MemberAttribute.id)
         .all()
     )
 
-    # Every attribute is stated as fact regardless of its confidence score.
     a_text = "; ".join(a.text for a in attrs if a.member_id == member_a_id)
     b_text = "; ".join(a.text for a in attrs if a.member_id == member_b_id)
     return {"reason_text": f"Because {a_text} and {b_text} — a good {reason} match."}
